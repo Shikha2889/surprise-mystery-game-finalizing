@@ -79,7 +79,6 @@ function setup() {
   startButton = createImg('../assets/startButtonImg.png')
   startButton.position(width/2- 200,height/2+ 200);
   startButton.size(400,100)
- 
   startButton.mouseClicked(changeState)
 
   paper = createSprite(width / 2, height / 2, 30, 30)
