@@ -6,32 +6,32 @@ var hotel, hotel_image
 var isTeleported = false
 var addAccessToBasement = false
 var reception, reception_bg
-var key, lockpick, guestbook
-var noteImg
+var lockkey_1, lockpick, guestbook
+var noteImg, text1
 var hiddenRoom, hiddenRoom_image
 var startButton
-var endOfReception
+var endOfReception, doorImg
 var basement, basement_image
 var lockpick
 var startButton_image
+var danger1img, danger2img
 
-var gameState = "Start"
+var gameState = "Splash"
 var isVideoPlaying = false;
+var mystery_image
+var isUnlocked = false;
 
-const Engine = Matter.Engine;
-const World = Matter.World;
-const Bodies = Matter.Bodies;
-const Constraint = Matter.Constraint;
+var doors;
+var numDoors = 3;
+var level = 1;
+var isChallengeCompleted = false;
+var playerSequence = [];
+var memorySequence = [];
+var nokeyImg, signImg
+var mirror, mirror1
+var edges
+var warn
 
-var engine, world;
-var canvas;
-var palyer, playerBase, playerArcher;
-var computer, computerBase, computerArcher;
-var playerArrows = [];
-var computerArrows = [];
-var playerArcherLife = 3;
-var computerArcherLife = 3;
-var computerCollision
 
 function preload() {
   bgImg = loadImage('../assets/forestBg.jpeg')
@@ -58,73 +58,46 @@ function preload() {
   noteImg = loadImage('../assets/paper_bg.png')
   hiddenRoom_image = loadImage('../assets/room_selection.jpg')
   hotel_room = loadImage('../assets/hotel_room.jpg')
-  splashImg = createImg('../assets/Adventure Games.gif')
+  // splashImg = createImg('../assets/Adventure Games.gif')
   basement_image = loadImage('../assets/basement.jpeg')
-  
+  mystery_image = loadImage('../assets/Mystery.png')
+  txt1_image = loadImage('../assets/txt1.png')
+  guestbook_image = loadImage('../assets/guestbook.png')
+  danger1img = loadImage('../assets/danger1.png')
+  danger2img = loadImage('../assets/danger2.png')
+  nokeyImg = loadImage('../assets/nokey.png')
+  signImg = loadImage('../assets/signboard.png')
+  signImg1 = loadImage('../assets/signboard1.png')
+  doorImg = loadImage('../assets/door.png')
+  mirrorImg = loadAnimation('../assets/mirror.png')
+  mirrorImg1 = loadAnimation('../assets/mirror1.png')
+  waytobasement = loadImage('../assets/basement.png')
+  ghostImg = loadImage('../assets/ghost.png')
+  warn = loadImage('../assets/warn.png')
+
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  console.log(width, height)
 
- /* vidElement = createVideo("../assets/AdventureGames.mp4");
-  vidElement.position(0, 0); // Set the position to (0, 0) to start from the top-left corner
-  vidElement.size(windowWidth, windowHeight); // Set the size to match the window dimensions
-  vidElement.play() */
-  
-  engine = Engine.create();
-  world = engine.world;
-
-  playerBase = new PlayerBase(300, random(450, height - 300), 180, 150);
-  player = new Player(285, playerBase.body.position.y - 153, 50, 180);
-  playerArcher = new PlayerArcher(
-    340,
-    playerBase.body.position.y - 180,
-    120,
-    120
-  );
-
-  computerBase = new ComputerBase(
-    width - 300,
-    random(450, height - 300),
-    180,
-    150
-  );
-  computer = new Computer(
-    width - 280,
-    computerBase.body.position.y - 153,
-    50,
-    180
-  );
-
-  computerArcher = new ComputerArcher(
-    width - 350,
-    computerBase.body.position.y - 180,
-    120,
-    120
-  );
-  handleComputerArcher();
- 
-  boy = createSprite(50, 400, 30, 30)
-  boy.addImage("standingR", boyStandingRight)
-  boy.addAnimation("walkingR", boyWalkingRight)
-  boy.addImage("standingL", boyStandingLeft)
-  boy.addAnimation("walkingL", boyWalkingLeft)
+  edges = createEdgeSprites();
 
   button = createButton('Rules');
   button.position(20, 20);
-  button.mousePressed(changeBG);
+  //button.mousePressed(changeBG);
   button.size(100, 50)
 
   closeButton = createButton('Close Rules');
   closeButton.position(20, 85);
-  closeButton.mousePressed(closeRules);
+  //closeButton.mousePressed(closeRules);
   closeButton.size(100, 50)
   closeButton.hide();
 
-  startButton = createImg('../assets/startButtonImg.png')
-  startButton.position(width/2- 200,height/2+ 200);
-  startButton.size(400,100)
-  startButton.mouseClicked(changeState)
+  startButton = createImg('../assets/startbtn.png')
+  startButton.position(width / 2 - 200, height / 2 + 100);
+  startButton.size(400, 200)
+  //startButton.mouseClicked(changeState)
 
   paper = createSprite(width / 2, height / 2, 30, 30)
   paper.visible = false
@@ -133,351 +106,306 @@ function setup() {
   hotel = createSprite(width - 100, height / 2, 50, 50)
   hotel.addImage("hotel", hotel_image)
   hotel.scale = 0.3
+  hotel.debug = true
+  hotel.setCollider('rectangle', -130, 0, 500, 500)
 
   reception = createSprite(width / 2, height / 2, 30, 30)
+  reception.shapeColor = "green"
+  reception.visible = false
 
-  key = createSprite(width / 2, height / 2, 20, 20)
-  key.addImage("key", keyImg)
-  key.visible = false
-  key.scale = 0.03
 
   guestbook = createSprite(width / 2 + 100, height / 2, 20, 20)
   guestbook.visible = false
+  guestbook.addImage("guestbook", guestbook_image)
+  guestbook.scale = 0.5
+  guestbook.debug = true
+  guestbook.setCollider("rectangle", 0, 0, 30, 30)
 
   hiddenRoom = createSprite(width - 100, height / 2, 20, 20)
   hiddenRoom.visible = false
   hiddenRoom.addImage(hiddenRoom_image)
 
-  lockpick = createSprite(300, height/2 + 110, 20, 20)
+  lockpick = createSprite(300, height / 2 + 110, 20, 20)
+  lockpick.visible = false
 
-  endOfReception = createSprite(width, height/2, 20, 20)
+  endOfReception = createSprite(width, height / 2, 20, 120)
+  endOfReception.addImage(doorImg)
+  endOfReception.scale = 1.2
+  endOfReception.visible = false
+  endOfReception.debug = true
+  endOfReception.setCollider('rectangle', -20, 0, 40, 500)
+
   basement = createSprite(endOfReception.x, endOfReception.y, 40, 40)
   basement.addImage("basement", basement_image)
   basement.visible = false
+
+
+
+  text1 = createSprite(width / 2, height / 2, 40, 40)
+  text1.visible = false
+  text1.addImage("text1", txt1_image)
+
+
+  // Create key
+  lockkey_1 = createSprite(random(width), random(height), 20, 20);
+  lockkey_1.shapeColor = "yellow";
+  lockkey_1.addImage("lockkey1", keyImg)
+  lockkey_1.scale = 0.005
+  lockkey_1.debug = true
+  lockkey_1.visible = false
+
+  //danger1 and danger2
+
+  danger1 = createSprite(width / 2 - 500, height / 2 - 100, 250, 700);
+  danger1.addImage("danger1", danger1img)
+  danger1.visible = false
+
+
+  danger2 = createSprite(width / 2 + 500, height / 2 - 100, 250, 700);
+  danger2.addImage("danger2", danger2img)
+  danger2.visible = false
+
+  room = createSprite(width / 2, height / 2 - 100, 250, 700);
+  room.visible = false
+
+  nokey = createSprite(width - 150, height / 2 - 100, 50, 50)
+  nokey.addImage(nokeyImg)
+  nokey.visible = false
+
+  sign = createSprite(width - 400, height / 2 - 75, 50, 50)
+  sign.addImage(signImg)
+  sign.visible = false
+
+  sign1 = createSprite(width / 2, height / 2 + 75, 50, 50)
+  sign1.addImage(signImg1)
+  sign1.visible = false
+  sign1.scale = 0.5
+
+  mirror = createSprite(width / 2 + 200, height / 2 - 120, 20, 40)
+  mirror.addAnimation("mirror1", mirrorImg)
+  mirror.addAnimation("mirror2", mirrorImg1)
+  mirror.scale = 0.5
+
+  ghost = createSprite(width / 2, height / 2, 20, 20)
+  ghost.addImage(ghostImg)
+  ghost.scale = 0.6
+
+  ghost.visible = false;
+
+  warning = createSprite(width / 2, height / 2 - 100, 20, 20)
+  warning.addImage(warn)
+  warning.visible = false
+
+
+  boy = createSprite(50, height / 2 + 75, 30, 30)
+  boy.addImage("standingR", boyStandingRight)
+  boy.addAnimation("walkingR", boyWalkingRight)
+  boy.addImage("standingL", boyStandingLeft)
+  boy.addAnimation("walkingL", boyWalkingLeft)
+  boy.debug = true
+
 
   drawSprites();
 }
 
 function draw() {
-  if(gameState=="Start") {
-    splashImg.position(50, 50)
-    
-  }
-  if (!isTeleported && gameState == "Play") {
-    background(bgImg);
-    reception.visible = false;
-    lockpick.visible = false;
-    startButton.hide()
-    if (keyDown('d')) {
-      boy.changeAnimation("walkingR", boyWalkingRight)
-      boy.x = boy.x + 7
-      boy.scale = 1
-    }
-    if (keyDown('a')) {
-      boy.changeAnimation("walkingL", boyWalkingLeft)
-      boy.x = boy.x - 7
-      boy.scale = 0.15
-    }
-    if (boy.isTouching(hotel)) {
-      teleportToHotel()
-    }
-    drawSprites();
-  }
-  else if(boy.isTeleported && gameState=="Play"){
-    background(reception_bg);
-    if (keyDown('d')) {
-      boy.changeAnimation("walkingR", boyWalkingRight)
-      boy.x = boy.x + 7
-      boy.scale = 2
-    }
-    if (keyDown('a')) {
-      boy.changeAnimation("walkingL", boyWalkingLeft)
-      boy.x = boy.x - 7
-      boy.scale = 0.3
-    }
-    if (boy.overlap(guestbook)) {
-      showNote()
-    }
-    drawSprites();
-  }
-  else if (boy.isTouching(endOfReception) && gameState==="Play") {
-    openHiddenRoom(hiddenRoom_image);
-    background();
-    if (keyDown('d')) {
-      boy.changeAnimation("walkingR", boyWalkingRight)
-      boy.x = boy.x + 7
-      boy.scale = 2
-    }
-    if (keyDown('a')) {
-      boy.changeAnimation("walkingL", boyWalkingLeft)
-      boy.x = boy.x - 7
-      boy.scale = 0.3
-    }
-  }
-  else if (boy.isTouching(lockpick) && gameState==="Play" && boy.isTouching(basement)) {
-    background(basement_image);
-    if (keyDown('d')) {
-      boy.changeAnimation("walkingR", boyWalkingRight)
-      boy.x = boy.x + 7
-      boy.scale = 2
-    }
-    if (keyDown('a')) {
-      boy.changeAnimation("walkingL", boyWalkingLeft)
-      boy.x = boy.x - 7
-      boy.scale = 0.3
-    }
-  }
-}
+  background("yellow")
 
-function changeBG() {
-  paper.visible = true
-  closeButton.show()
-}
-
-function changeState() {
-  gameState = "Play"
   console.log(gameState)
-  startButton.hide()
-  splashImg.hide()
+
+  if (gameState == "Splash") {
+    SplashScreen()
+  }
+  else if (gameState == "Forest") {
+    ForestScreen()
+  }
+  else if (gameState == "Reception") {
+    ReceptionScreen()
+  }
+  else if (gameState == "Room_Selection") {
+    RoomSelectionScreen()
+  }
+  else if (gameState == "Room") {
+    HotelRoomScreen()
+  }
+  else if (gameState == "BaseMent") {
+    console.log("I am basement ")
+    BaseMentScreen()
+  }
+
+  // Move the boy left and right
+  if (keyDown('d')) {
+    boy.changeAnimation("walkingR", boyWalkingRight)
+    boy.x = boy.x + 7
+    boy.scale = 1
+  }
+  if (keyDown('a')) {
+    boy.changeAnimation("walkingL", boyWalkingLeft)
+    boy.x = boy.x - 7
+    boy.scale = 0.15
+  }
+  if (keyDown('w')) {
+    boy.changeAnimation("walkingL", boyWalkingLeft)
+    boy.y = boy.y - 7
+    boy.scale = 0.15
+  }
+  if (keyDown('s')) {
+    boy.changeAnimation("walkingL", boyWalkingLeft)
+    boy.y = boy.y + 7
+    boy.scale = 0.15
+  }
+
+  drawSprites()
 }
 
-function teleportToHotel() {
-  isTeleported = true
-  boy.x = 100
-  boy.y = height / 2 + 100
-  boy.scale = 2
+function SplashScreen() {
+  background(mystery_image)
+  // Hide the boy and hotel sprites
+  boy.visible = false;
+  hotel.visible = false;
+  startButton.mouseClicked(function () {
+    gameState = "Forest"
+    startButton.hide()
+  })
+
+  drawSprites()
+}
+
+function ForestScreen() {
+  background(bgImg)
+  // Hide the boy and hotel sprites
+  boy.visible = true;
+  hotel.visible = true;
+  sign1.visible = true
+  if (boy.overlap(hotel)) {
+    gameState = "Reception";
+  }
+  drawSprites()
+}
+
+function ReceptionScreen() {
+  background(reception_bg)
   hotel.visible = false
-  hotel.x = width - 100
-  hotel.y = height - 100
-  hotel.scale = 0.3
+  sign1.visible = false
+  sign.visible = true
+  boy.visible = true;
+  lockkey_1.visible = true;
+  guestbook.visible = true;
+  endOfReception.visible = true;
+
+
+
+  if (boy.overlap(guestbook)) {
+    lockkey_1.visible = true
+    text1.visible = true
+    boy.x = width / 2 + 400
+
+    setTimeout(function () {
+      text1.visible = false
+      guestbook.remove();
+    }, 2000)
+  }
+
+  // Check if player collects the key
+  if (boy.overlap(lockkey_1)) {
+    console.log("key collected")
+    lockkey_1.visible = false
+    nokey.visible = false
+    setTimeout(function () {
+      lockkey_1.remove()
+    }, 1000)
+
+    isUnlocked = true;
+  }
+
+  // Check if player unlocks the room
+  if (isUnlocked && boy.overlap(endOfReception)) {
+    gameState = "Room_Selection";
+  }
+
+
+  if (!isUnlocked && boy.overlap(endOfReception)) {
+    nokey.visible = true
+  }
+
+
+  drawSprites();
+
 }
 
-function closeRules() {
-  paper.visible = false
-}
-
-function showNote() {
-  var note = createSprite(width / 2, height / 2, 20, 20)
-  note.visible = true
-  note.addImage('note', noteImg)
-  note.scale = 1
-  note.x = width / 2 - 100
-  note.y = height / 2 - 100
+function RoomSelectionScreen() {
+  background(hiddenRoom_image)
+  sign.visible = false
+  room.visible = false
   guestbook.visible = false
-  var message = "Hello Adventurer! Take the key and walk towards your right hand side!"
-  var dialogueBox = createDiv(message)
-  dialogueBox.addClass("dialogue")
+  endOfReception.visible = false
+  room.visible = false
 
-  setTimeout(function () {
-    note.visible = false
-    key.visible = true
-    key.depth = note.depth + 1
-  }, 3000)
-}
-
-function openHiddenRoom() {
-  key.visible = false
-  hiddenRoom.visible = true
-}
-
-function findLockpick(){
-  if (boy.isTouching(lockpick)){
-    boy.addAccessToBasement = true
-  }
-}
-
-function basement(){
-  if(addAccessToBasement === true){
-    bossFight();
-  }
-}
-
-function bossFight(){
-  background(backgroundImg);
-
-  Engine.update(engine);
-
-  // Title
-  fill("#FFFF");
-  textAlign("center");
-  textSize(40);
-  text("EPIC ARCHERY", width / 2, 100);
-
-  for (var i = 0; i < playerArrows.length; i++) {
-    showArrows(i, playerArrows);
+  // Check if player completes the challenge
+  if (boy.overlap(danger1)) {
+    danger1.visible = true
   }
 
-  playerBase.display();
-  player.display();
-  player.life();
-  playerArcher.display();
-  handlePlayerArrowCollision();
-
-  for (var i = 0; i < computerArrows.length; i++) {
-    showArrows(i, computerArrows);
+  if (boy.overlap(danger2)) {
+    danger2.visible = true
   }
 
-  computerBase.display();
-  computer.display();
-  computer.life();
-  computerArcher.display();
-  handleComputerArrowCollision();
-}
-
-function keyPressed() {
-  if (keyCode === 32) {
-    var posX = playerArcher.body.position.x;
-    var posY = playerArcher.body.position.y;
-    var angle = playerArcher.body.angle;
-
-    var arrow = new PlayerArrow(posX, posY, 100, 10, angle);
-
-    arrow.trajectory = [];
-    Matter.Body.setAngle(arrow.body, angle);
-    playerArrows.push(arrow);
+  if (boy.overlap(room)) {
+    gameState = "Room"
   }
+
+
+
+
 }
 
-function keyReleased() {
-  if (keyCode === 32) {
-    if (playerArrows.length) {
-      var angle = playerArcher.body.angle;
-      playerArrows[playerArrows.length - 1].shoot(angle);
-    }
+function HotelRoomScreen() {
+  background(hotel_room)
+  danger1.visible = false
+  danger2.visible = false
+
+  mirror.visible = true
+
+  if (mousePressedOver(mirror)) {
+    mirror.changeAnimation('mirror2')
   }
-}
 
-function showArrows(index, arrows) {
-  arrows[index].display();
-  if (
-    arrows[index].body.position.x > width ||
-    arrows[index].body.position.y > height
-  ) {
-    if (!arrows[index].isRemoved) {
-      arrows[index].remove(index, arrows);
-    } else {
-      arrows[index].trajectory = [];
-    }
+  if (boy.y > height - 50) {
+    gameState = "BaseMent"
   }
+
+
 }
 
-function handleComputerArcher() {
-  if (!computerArcher.collapse && !playerArcher.collapse) {
-    setTimeout(() => {
-      var pos = computerArcher.body.position;
-      var angle = computerArcher.body.angle;
-      var moves = ["UP", "DOWN"];
-      var move = random(moves);
-      var angleValue;
+function BaseMentScreen() {
+  background(waytobasement)
+  console.log('basementscreen')
+  ghost.visible = true
+  ghost.velocityX = 4
 
-      if (move === "UP" && computerArcher.body.angle < 1.87) {
-        angleValue = 0.1;
-      }else{
-          angleValue = -0.1;
-      }
-      if(move === "DOWN" && computerArcher.body.angle > 1.47) {
-        angleValue = -0.1;
-      }else{
-          angleValue = 0.1;
-      }
-      
-      angle += angleValue;
-
-      var arrow = new ComputerArrow(pos.x, pos.y, 100, 10, angle);
-
-      Matter.Body.setAngle(computerArcher.body, angle);
-      Matter.Body.setAngle(computerArcher.body, angle);
-
-      computerArrows.push(arrow);
-      setTimeout(() => {
-        computerArrows[computerArrows.length - 1].shoot(angle);
-      }, 100);
-
-      handleComputerArcher();
-    }, 2000);
+  warning.visible = true 
+  if (ghost.x > 1500) {
+    ghost.x = 10
   }
-}
-
-function handlePlayerArrowCollision() {
-  for (var i = 0; i < playerArrows.length; i++) {
-    var baseCollision = Matter.SAT.collides(
-      playerArrows[i].body,
-      computerBase.body
-    );
-
-     var computerCollision = Matter.SAT.collides(
-      playerArrows[i].body,
-      computer.body
-    );
-
-    var computerArcherCollision = Matter.SAT.collides(
-      playerArrows[i].body,
-      computerArcher.body
-    );
-
-    if (
-      baseCollision.collided ||
-      computerArcherCollision.collided ||
-      computerCollision.collided
-    ) {
-
-      /**Update the code here so that computer life 
-      reduces if player's arrow hits the target***/
-      computerArcherLife -= 1;
-      computer.reduceLife(computerArcherLife);
-
-      if (computerArcherLife <= 0) {
-        computerArcher.collapse = true;
-        Matter.Body.setStatic(computerArcher.body, false);
-        Matter.Body.setStatic(computer.body, false);
-        Matter.Body.setPosition(computer.body, {
-          x: width - 100,
-          y: computer.body.position.y
-        });
-      }
-    }
+  else if (ghost.x < 10) {
+    ghost.x = 1500
   }
+
+
+
+  console.log(ghost.x, ghost.y)
+
+
+
 }
 
-function handleComputerArrowCollision() {
-  for (var i = 0; i < computerArrows.length; i++) {
-    var baseCollision = Matter.SAT.collides(
-      computerArrows[i].body,
-      playerBase.body
-    );
 
-    var playerCollision = Matter.SAT.collides(
-      computerArrows[i].body,
-      player.body
-    );
-
-    var playerArcherCollision = Matter.SAT.collides(
-      computerArrows[i].body,
-      playerArcher.body
-    );
-
-    if (
-      baseCollision.collided ||
-      playerCollision.collided||
-      playerArcherCollision.collided
-    ) {
-      playerArcherLife -= 1;
-      player.reduceLife(playerArcherLife);
-      if (playerArcherLife <= 0) {
-        playerArcher.collapse = true;
-        Matter.Body.setStatic(playerArcher.body, false);
-        Matter.Body.setStatic(player.body, false);
-        Matter.Body.setPosition(player.body, {
-          x: 100,
-          y: player.body.position.y
-        });
-      }
-    }
-  }
+function dialogue(text) {
+  console.log(text);
 }
 
-/*function startgame(){
-  vidElement.show();
-  vidElement.play(); // Play the video
-}*/
+
+
+
+
 
